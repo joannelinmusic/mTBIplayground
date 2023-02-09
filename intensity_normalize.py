@@ -9,33 +9,38 @@ import csv
 # Normalizing images by type, running once will be only one type
 def normalize_image(folder, type):
     images = []
-    for patientNumber in os.listdir(folder):
-        if not patientNumber.startswith('.'):
-            for image_type in os.listdir(folder+"/"+patientNumber):
-                if image_type == type:
-                    print(image_type)
-                    for last_folder in os.listdir(folder+"/"+patientNumber+"/"+image_type):
-                        if not last_folder.startswith('.'):
-                            for slices in os.listdir(folder+"/"+patientNumber+"/"+image_type+"/"+last_folder):
+    with open('min_max_intensity_record.csv', 'w', newline='') as f:
+        fieldNames = ['patientID', 'image filename','Min Intensity(before)', 'Max Intensity(before)', 'Min Intensity(after)', 'Max Intensity(after)']
+        myWriter = csv.DictWriter(f, fieldnames=fieldNames)
+        
+        for patientNumber in os.listdir(folder):
+            if not patientNumber.startswith('.'):
+                for image_type in os.listdir(folder+"/"+patientNumber):
+                    if image_type == type:
+                        print(image_type)
+                        for last_folder in os.listdir(folder+"/"+patientNumber+"/"+image_type):
+                            if not last_folder.startswith('.'):
+                                for slices in os.listdir(folder+"/"+patientNumber+"/"+image_type+"/"+last_folder):
 
-                                img = cv2.imread(os.path.join(folder,patientNumber,image_type,last_folder,slices))
-                                
-                                if img is not None:
+                                    img = cv2.imread(os.path.join(folder,patientNumber,image_type,last_folder,slices))
                                     
-                                    print(np.amin(img), np.amax(img))
-                                    normalizedimage = cv2.normalize(img,None, 0, 255, cv2.NORM_MINMAX)
-                                    
-                                    
-                                    # Command lines to print out the min and max intensity
-                                    # cv2.imshow('Normalized_image', normalizedimage)
-                                    # cv2.waitKey(0)
-                                    # cv2.destroyAllWindows()
+                                    if img is not None:
+                                        
+                                        print(patientNumber, slices, np.amin(img), np.amax(img))
+                                        normalizedimage = cv2.normalize(img,None, 0, 255, cv2.NORM_MINMAX)
+                                        myWriter.writerow({})
+                                        myWriter.writerow([patientNumber, slices, np.amin(img), np.amax(img), np.amin(normalizedimage), np.amax(normalizedimage)])
+                                        
+                                        # Command lines to print out the min and max intensity
+                                        # cv2.imshow('Normalized_image', normalizedimage)
+                                        # cv2.waitKey(0)
+                                        # cv2.destroyAllWindows()
 
-                                    # print(np.amin(normalizedimage), np.amax(normalizedimage))
-                                    
-                                    # writeToCSV(path,patientNumber,image_type,xxx,yyy,zzz)
-                                    # saveImage(path,"",nornalizedImage)
-                                    # images.append(img)
+                                        # print(np.amin(normalizedimage), np.amax(normalizedimage))
+                                        
+                                        # writeToCSV(path,patientNumber,image_type,xxx,yyy,zzz)
+                                        # saveImage(path,"",nornalizedImage)
+                                        # images.append(img)
                                     
     return images
 
