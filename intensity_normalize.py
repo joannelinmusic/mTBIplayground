@@ -12,7 +12,8 @@ def normalize_image(folder, type):
     with open('min_max_intensity_record.csv', 'w', newline='') as f:
         fieldNames = ['patientID', 'image filename','Min Intensity(before)', 'Max Intensity(before)', 'Min Intensity(after)', 'Max Intensity(after)']
         myWriter = csv.DictWriter(f, fieldnames=fieldNames)
-        
+        myWriter.writeheader()
+
         for patientNumber in os.listdir(folder):
             if not patientNumber.startswith('.'):
                 for image_type in os.listdir(folder+"/"+patientNumber):
@@ -28,9 +29,11 @@ def normalize_image(folder, type):
                                         
                                         print(patientNumber, slices, np.amin(img), np.amax(img))
                                         normalizedimage = cv2.normalize(img,None, 0, 255, cv2.NORM_MINMAX)
-                                        myWriter.writerow({})
-                                        myWriter.writerow([patientNumber, slices, np.amin(img), np.amax(img), np.amin(normalizedimage), np.amax(normalizedimage)])
-                                        
+                                        if np.amin(img)!=np.amax(img) and np.mean(img) != 0:
+                                            myWriter.writerow({'patientID': patientNumber, 'image filename': slices, \
+                                                'Min Intensity(before)': np.amin(img), 'Max Intensity(before)': np.amax(img), \
+                                                'Min Intensity(after)': np.amin(normalizedimage), 'Max Intensity(after)':np.amax(normalizedimage)})
+                                            
                                         # Command lines to print out the min and max intensity
                                         # cv2.imshow('Normalized_image', normalizedimage)
                                         # cv2.waitKey(0)
