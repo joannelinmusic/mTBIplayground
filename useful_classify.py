@@ -1,4 +1,4 @@
-import intensity_normalize
+from cv2 import transform
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -10,73 +10,94 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import random_split
+import cv2
 import os
-from torchvision.models.vgg import vgg16, VGG16_Weights
 
 
-# import ssl
-# ssl._create_default_https_context = ssl._create_unverified_context
+# root_dir = "/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/yes_no_split"
+
+# for image in os.listdir(root_dir+"/train/yes"):
+#     img = cv2.imread(os.path.join(root_dir,"train", "yes", image))
+#     print(img.shape)
+
+# for image in os.listdir(root_dir+"/train/no"):
+#     img = cv2.imread(os.path.join(root_dir,"train", "no", image))
+#     print(img.shape)
 
 transformations = transforms.Compose([
-    transforms.Resize(255),
-    transforms.CenterCrop(224),
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5], std=[0.5])
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
+
+# for image in os.listdir(root_dir+"/train/yes"):
+#     img = cv2.imread(os.path.join(root_dir,"train", "yes", image))
+#     img_normalized = transformations(img)
+#     print(img_normalized.shape)
+
 
 
 # Define the dataset
-# dataset_train = datasets.ImageFolder("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/yes_no_split", transform=transformations)
-# dataset_val = datasets.ImageFolder("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/yes_no_split", transform=transformations)
-
 train_set = datasets.ImageFolder("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/yes_no_split/train", transform = transformations)
-val_set = datasets.ImageFolder("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/yes_no_split/validate", transform = transformations)
+val_set = datasets.ImageFolder("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/yes_no_split/val", transform = transformations)
 
-# Calculate the split sizes
-# train_size_1 = int(0.7 * len(dataset_yes))
-# val_size_1 = len(dataset_yes) - train_size_1
 
-# train_size_2 = int(0.7 * len(dataset_no))
-# val_size_2 = len(dataset_no) - train_size_2
 
-# # Split the dataset into train and validation sets
-# train_set_1, val_set_1 = random_split(dataset_yes, [train_size_1, val_size_1])
-# train_set_2, val_set_2 = random_split(dataset_no, [train_size_2, val_size_2])
+
+
 
 # Define the batch size
-batch_size = 32
+batch_size = 6
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size =batch_size, shuffle=True)
 
-# train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, sampler=train_set_1, num_workers=4)
-# train_loader2 = torch.utils.data.DataLoader(dataset_no, batch_size=batch_size, sampler=train_set_2, num_workers=4)
-# train_loader = torch.utils.data.ConcatDataset([train_loader, train_loader2])
 
-# val_loader = torch.utils.data.DataLoader(dataset_yes, batch_size=batch_size, sampler=val_set_1, num_workers=4)
-# val_loader2 = torch.utils.data.DataLoader(dataset_no, batch_size=batch_size, sampler=val_set_2, num_workers=4)
-# val_loader = torch.utils.data.ConcatDataset([val_loader, val_loader2])
+    
 
+class MyNetwork(nn.Module):
+    def __init__(self, num_classes=2):
+        super().__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 6, 5),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(6, 16, 5),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(16 * 5 * 5, 120),
+            nn.ReLU(),
+            nn.Linear(120, 84),
+            nn.ReLU(),
+            nn.Linear(84, num_classes),
+            nn.LogSoftmax(dim=1)
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x
 
 
 # Get pretrained model using torchvision.models as models library
-model = vgg16(weights=VGG16_Weights.IMAGENET1K_V1)
+model = MyNetwork()
+# model = models.densenet161(pretrained=True)
 # Turn off training for their parameters
 for param in model.parameters():
     param.requires_grad = False
 
 # Create new classifier for model using torch.nn as nn library
-classifier_input = model.classifier[6].in_features
+classifier_input = model.classifier
 num_labels = 2
-classifier = nn.Sequential(
-    nn.Linear(classifier_input, 4096),
-    nn.ReLU(),
-    nn.Dropout(p=0.5),
-    nn.Linear(4096, 4096),
-    nn.ReLU(),
-    nn.Dropout(p=0.5),
-    nn.Linear(4096, num_labels),
-    nn.LogSoftmax(dim=1)
-)
+classifier = nn.Sequential(nn.Flatten(),
+                           nn.Linear(44944, 1024),
+                           nn.ReLU(),
+                           nn.Linear(1024, 512),
+                           nn.ReLU(),
+                           nn.Linear(512, num_labels),
+                           nn.LogSoftmax(dim=1))
 model.classifier = classifier
 
 
@@ -90,7 +111,7 @@ criterion = nn.NLLLoss()
 optimizer = optim.Adam(model.classifier.parameters())
 
 
-epochs = 10
+epochs = 5
 for epoch in range(epochs):
     train_loss = 0
     val_loss = 0
@@ -130,7 +151,6 @@ for epoch in range(epochs):
             
             # Print the progress of our evaluation
             counter += 1
-            print(counter, "/", len(val_loader))
     
     # Get the average loss for the entire epoch
     train_loss = train_loss/len(train_loader.dataset)
@@ -142,35 +162,36 @@ for epoch in range(epochs):
 model.eval()
 
 
-def process_image(image_path):
-    # Load Image
-    img = Image.open(image_path).convert('L')
+# def process_image(image_path):
+#     # Load Image
+#     img = Image.open(image_path).convert('L')
     
-    # Get the dimensions of the image
-    width, height = img.size
-    img = img.resize((255, int(255*(height/width))) if width < height else (int(255*(width/height)), 255))
-    width, height = img.size
+#     # Get the dimensions of the image
+#     width, height = img.size
+#     img = img.resize((255, int(255*(height/width))) if width < height else (int(255*(width/height)), 255))
+#     width, height = img.size
     
-    # Set the coordinates to do a center crop of 224 x 224
-    left = (width - 224)/2
-    top = (height - 224)/2
-    right = (width + 224)/2
-    bottom = (height + 224)/2
-    img = img.crop((left, top, right, bottom))
+#     # Set the coordinates to do a center crop of 224 x 224
+#     left = (width - 224)/2
+#     top = (height - 224)/2
+#     right = (width + 224)/2
+#     bottom = (height + 224)/2
+#     img = img.crop((left, top, right, bottom))
     
-    img = np.array(img)
-    img = np.expand_dims(img, axis=2)
-    img = img/255
-    img = (img - 0.5)/0.5
-    img = img[np.newaxis,:]
+#     img = np.array(img)
+#     img = np.expand_dims(img, axis=2)
+#     img = img/255
+#     img = (img - 0.5)/0.5
+#     img = img[np.newaxis,:]
     
-    # Turn into a torch tensor
-    image = torch.from_numpy(img)
-    image = image.float()
-    return image
+#     # Turn into a torch tensor
+#     image = torch.from_numpy(img)
+#     image = image.float()
+#     return image
 
 # Using our model to predict the label
 def predict(image, model):
+    print(image.shape)
     output = model.forward(image)
     output = torch.exp(output)
     
@@ -178,18 +199,18 @@ def predict(image, model):
     probs, classes = output.topk(1, dim=1)
     return probs.item(), classes.item()
 
-def show_image(image):
-    image = image.numpy()
+# def show_image(image):
+#     image = image.numpy()
     
-    # Unnormalize
-    image = image.squeeze()
-    image = image * 0.226 + 0.445
+#     # Unnormalize
+#     image = image.squeeze()
+#     image = image * 0.226 + 0.445
     
-    fig = plt.figure(figsize=(25, 4))
-    plt.imshow(image, cmap='gray')
+#     fig = plt.figure(figsize=(25, 4))
+#     plt.imshow(image, cmap='gray')
 
-
-image = process_image("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/mTBI_data_new_2022/mTBI_Data_JPEGs/D003/T1/MRI BRAIN_BRAIN STEM W_O CONT_5115750/export--73327752.jpg")
-top_prob, top_class = predict(image, model)
-show_image(image)
-print("The model is ", top_prob*100, "% certain that the image has a predicted class of ", top_class)
+# print()
+image = transforms("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/mTBI_data_new_2022/mTBI_Data_JPEGs/D003/T1/MRI BRAIN_BRAIN STEM W_O CONT_5115750/export--73327752.jpg")
+pred_prob, pred_class = predict(image, model)
+# show_image(image)
+print("The model is ", pred_prob*100, "% certain that the image has a predicted class of ", pred_class)
