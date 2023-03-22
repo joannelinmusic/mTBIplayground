@@ -49,9 +49,9 @@ def normalize_image(folder, type):
 
 
 def main():
-    # normalize_image("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/mTBI_data_new_2022/mTBI_Data_JPEGs", "T1")
+    normalize_image("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/mTBI_data_new_2022/mTBI_Data_JPEGs", "T1")
     # normalize_image("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/mTBI_data_new_2022/mTBI_Data_JPEGs", "T2")
-    normalize_image("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/mTBI_data_new_2022/mTBI_Data_JPEGs", "FLAIR")
+    # normalize_image("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/mTBI_data_new_2022/mTBI_Data_JPEGs", "FLAIR")
 
 if __name__ == "__main__":
     main()
