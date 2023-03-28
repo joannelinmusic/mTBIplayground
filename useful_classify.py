@@ -150,7 +150,7 @@ def train_model(epochs):
 
             print('Train Accuracy: ', train_accuracy/len(train_loader))
             print('Validation Accuracy: ', val_accuracy/len(val_loader))
-            print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, train_loss, valid_loss))
+            print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, train_loss, val_loss))
 
             model.eval()
 
