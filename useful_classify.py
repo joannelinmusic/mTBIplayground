@@ -31,7 +31,7 @@ val_set = datasets.ImageFolder("/Users/joannelin/Desktop/Motorola/mTBIplayground
 
 
 # Define the batch size
-batch_size = 6
+batch_size = 16
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size =batch_size, shuffle=True)
     
@@ -73,58 +73,6 @@ device = "cpu"
 criterion = nn.NLLLoss()
 optimizer = optim.Adam(model.classifier.parameters())
 
-
-
-
-# epochs = 1
-# for epoch in range(epochs):
-#     train_loss = 0
-#     val_loss = 0
-#     accuracy = 0
-    
-#     # Training the model
-#     model.train()
-#     counter = 0
-#     for inputs, labels in train_loader:
-#         inputs, labels = inputs.to(device), labels.to(device)
-#         optimizer.zero_grad()
-#         output = model.forward(inputs)
-#         loss = criterion(output, labels)
-#         loss.backward()
-#         optimizer.step()
-#         train_loss += loss.item()*inputs.size(0)
-        
-#         # Print the progress
-#         counter += 1
-#         print(counter, "/", len(train_loader))
-        
-#     # Evaluating the model
-#     model.eval()
-#     counter = 0
-#     # Tell torch not to calculate gradients
-#     with torch.no_grad():
-#         for inputs, labels in val_loader:
-#             inputs, labels = inputs.to(device), labels.to(device)
-#             output = model.forward(inputs)
-#             valloss = criterion(output, labels)
-#             val_loss += valloss.item()*inputs.size(0)
-            
-#             output = torch.exp(output)
-#             top_p, top_class = output.topk(1, dim=1)
-#             equals = top_class == labels.view(*top_class.shape)
-#             accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
-    
-#     # Get the average loss for the entire epoch
-#     train_loss = train_loss/len(train_loader.dataset)
-#     valid_loss = val_loss/len(val_loader.dataset)
-#     # Print out the information
-
-#     print('Validation Accuracy: ', accuracy/len(val_loader))
-#     print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, train_loss, valid_loss))
-
-# model.eval()
-
-
 # Using our model to predict the label
 def predict(image, model, labels):
     output = model.forward(image)
@@ -138,11 +86,7 @@ def predict(image, model, labels):
 directory = '/Users/joannelin/Desktop/Motorola/mTBIplayground/'
 file_path = os.path.join(directory, 'accuracy_epoch.csv')
 
-with open(file_path, 'w', newline='') as f:
-        fieldNames = ['Epoch', 'Train_accuracy','Train_loss', 'Validation_accuracy', \
-            'Validation_loss', 'Test_accuracy','Test_loss']
-        myWriter = csv.DictWriter(f, fieldnames=fieldNames)
-        myWriter.writeheader()
+
 
 def train_model(epochs):
     train_loss = 0
@@ -150,107 +94,117 @@ def train_model(epochs):
     train_accuracy = 0
     val_accuracy = 0
 
-    for epoch in range(epochs):
-        train_loss = 0
-        val_loss = 0
-        train_accuracy = 0
-        val_accuracy = 0
+    with open(file_path, 'w', newline='') as f:
+        fieldNames = ['Epoch', 'Train_accuracy','Train_loss', 'Validation_accuracy', \
+            'Validation_loss', 'Test_accuracy','Test_loss']
+        myWriter = csv.DictWriter(f, fieldnames=fieldNames)
+        myWriter.writeheader()
+    
+        for epoch in range(epochs):
+            train_loss = 0
+            val_loss = 0
+            train_accuracy = 0
+            val_accuracy = 0
 
-        # Training the model
-        model.train()
-        counter = 0
-        for inputs, labels in train_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
-            optimizer.zero_grad()
-            output = model.forward(inputs)
-            loss = criterion(output, labels)
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()*inputs.size(0)
-            
-            ps = torch.exp(output)
-            top_p, top_class = ps.topk(1, dim=1)
-            equals = top_class == labels.view(*top_class.shape)
-            train_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
-            
-            # Print the progress
-            counter += 1
-            print(counter, "/", len(train_loader))
-            
-    # Evaluating the model
-        model.eval()
-        counter = 0
-        # Tell torch not to calculate gradients
-        with torch.no_grad():
-            for inputs, labels in val_loader:
+            # Training the model
+            model.train()
+            counter = 0
+            for inputs, labels in train_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
+                optimizer.zero_grad()
                 output = model.forward(inputs)
-                valloss = criterion(output, labels)
-                val_loss += valloss.item()*inputs.size(0)
+                loss = criterion(output, labels)
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item()*inputs.size(0)
                 
-                output = torch.exp(output)
-                top_p, top_class = output.topk(1, dim=1)
+                ps = torch.exp(output)
+                top_p, top_class = ps.topk(1, dim=1)
                 equals = top_class == labels.view(*top_class.shape)
-                val_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
-        
-        # Get the average loss for the entire epoch
-        train_loss = train_loss/len(train_loader.dataset)
-        valid_loss = val_loss/len(val_loader.dataset)
-        # Print out the information
+                train_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
+                
+                # Print the progress
+                counter += 1
+                print(counter, "/", len(train_loader))
+                
+            # Evaluating the model
+            model.eval()
+            counter = 0
+            # Tell torch not to calculate gradients
+            with torch.no_grad():
+                for inputs, labels in val_loader:
+                    inputs, labels = inputs.to(device), labels.to(device)
+                    output = model.forward(inputs)
+                    valloss = criterion(output, labels)
+                    val_loss += valloss.item()*inputs.size(0)
+                    
+                    output = torch.exp(output)
+                    top_p, top_class = output.topk(1, dim=1)
+                    equals = top_class == labels.view(*top_class.shape)
+                    val_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
+            
+            # Get the average loss for the entire epoch
+            train_loss = train_loss/len(train_loader.dataset)
+            val_loss = val_loss/len(val_loader.dataset)
+            # Print out the information
 
-        print('Train Accuracy: ', train_accuracy/len(train_loader))
-        print('Validation Accuracy: ', val_accuracy/len(val_loader))
-        print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, train_loss, valid_loss))
+            print('Train Accuracy: ', train_accuracy/len(train_loader))
+            print('Validation Accuracy: ', val_accuracy/len(val_loader))
+            print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, train_loss, valid_loss))
 
-        model.eval()
+            model.eval()
 
-        test_set = datasets.ImageFolder("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/yes_no_split/test", transform = transformations)
-        test_loader = torch.utils.data.DataLoader(test_set, batch_size=1, shuffle=True)
+            test_set = datasets.ImageFolder("/Users/joannelin/Desktop/Motorola/mTBIplayground/Datasets/yes_no_split/test", transform = transformations)
+            test_loader = torch.utils.data.DataLoader(test_set, batch_size=1, shuffle=True)
 
-        count_true = 0
-        y_pred = []
-        y_true = []
-        test_accuracy = 0
-        test_loss = 0
+            count_true = 0
+            y_pred = []
+            y_true = []
+            test_accuracy = 0
+            test_loss = 0
 
-        for inputs, labels in test_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
-            pred_prob, pred_class, equals, output = predict(inputs, model, labels)
+            for inputs, labels in test_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                pred_prob, pred_class, equals, output = predict(inputs, model, labels)
 
-            loss = criterion(output, labels)
-            test_loss += loss.item()*inputs.size(0)
+                loss = criterion(output, labels)
+                test_loss += loss.item()*inputs.size(0)
 
-            output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
-            y_pred.extend(output) # Save Prediction
+                output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
+                y_pred.extend(output) # Save Prediction
 
-            labels = labels.data.cpu().numpy()
-            y_true.extend(labels) # Save Truth
+                labels = labels.data.cpu().numpy()
+                y_true.extend(labels) # Save Truth
 
-            if equals.squeeze().item() == True:
-                count_true+=1
-            test_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
+                if equals.squeeze().item() == True:
+                    count_true+=1
+                test_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
 
-        # Compute the average test loss and test accuracy
-        test_loss = test_loss / len(test_loader.dataset)
-        test_accuracy = count_true / len(test_loader.dataset)
+            # Compute the average test loss and test accuracy
+            test_loss = test_loss / len(test_loader.dataset)
+            test_accuracy = count_true / len(test_loader.dataset)
 
-        print('Test Accuracy: ', test_accuracy)
-        print('Epoch: {} \tTesting Loss: {:.6f}'.format(epoch, test_loss))
+            print('Test Accuracy: ', test_accuracy)
+            print('Epoch: {} \tTesting Loss: {:.6f}'.format(epoch, test_loss))
 
-        c_matrix = confusion_matrix(y_true, y_pred)
-        plt.figure(figsize = (2, 2))
-        print(c_matrix)
+            c_matrix = confusion_matrix(y_true, y_pred)
+            plt.figure(figsize = (2, 2))
+            print(c_matrix)
 
-        print(epoch, train_accuracy, train_loss, val_accuracy, val_loss, test_accuracy, test_loss)
+            print(epoch, train_accuracy, train_loss, val_accuracy, val_loss, test_accuracy, test_loss)
 
-        with open('accuracy_epoch.csv', mode='a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow({'Epoch' : epoch+1, 'Train_accuracy' : train_accuracy, \
-                'Train_loss' : train_loss, 'Validation_accuracy' : val_accuracy, \
-                'Validation_loss' : val_loss, 'Test_accuracy' : test_accuracy,'Test_loss' : test_loss})
+            myWriter.writerow({'Epoch' : epoch+1, 'Train_accuracy' : train_accuracy/len(train_loader), \
+                     'Train_loss' : train_loss, 'Validation_accuracy' : val_accuracy/len(test_loader), \
+                     'Validation_loss' : val_loss, 'Test_accuracy' : test_accuracy,'Test_loss' : test_loss})
+
+            # with open('accuracy_epoch.csv', mode='a', newline='') as file:
+            #     writer = csv.writer(file)
+            #     writer.writerow({'Epoch' : epoch+1, 'Train_accuracy' : train_accuracy, \
+            #         'Train_loss' : train_loss, 'Validation_accuracy' : val_accuracy, \
+            #         'Validation_loss' : val_loss, 'Test_accuracy' : test_accuracy,'Test_loss' : test_loss})
 
 
-train_model(2)
+train_model(10)
 
 
 
