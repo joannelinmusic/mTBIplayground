@@ -81,7 +81,7 @@ def predict(image, model, labels):
     # Get the top predicted class and the output percentage
     probs, classes = output.topk(1, dim=1)
     equals = classes == labels.view(*labels.shape)
-    return probs.squeeze().item(), classes.squeeze().item(), equals, output
+    return probs.squeeze().item(), classes.squeeze().item(), equals
 
 directory = '/Users/joannelin/Desktop/Motorola/mTBIplayground/'
 file_path = os.path.join(directory, 'accuracy_epoch.csv')
@@ -129,9 +129,9 @@ def train_model(epochs):
                 
             # Evaluating the model
             model.eval()
-            counter = 0
             # Tell torch not to calculate gradients
             with torch.no_grad():
+                counter = 0
                 for inputs, labels in val_loader:
                     inputs, labels = inputs.to(device), labels.to(device)
                     output = model.forward(inputs)
@@ -165,20 +165,17 @@ def train_model(epochs):
 
             for inputs, labels in test_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
-                pred_prob, pred_class, equals, output = predict(inputs, model, labels)
+                pred_prob, pred_class, equals= predict(inputs, model, labels)
 
-                loss = criterion(output, labels)
-                test_loss += loss.item()*inputs.size(0)
+                # loss = criterion(output, labels)
+                # test_loss += loss.item()*inputs.size(0)
 
-                output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
-                y_pred.extend(output) # Save Prediction
-
-                labels = labels.data.cpu().numpy()
+                y_pred.extend([pred_class]) # Save Prediction
                 y_true.extend(labels) # Save Truth
 
-                if equals.squeeze().item() == True:
+                if equals == True:
                     count_true+=1
-                test_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
+                # test_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
 
             # Compute the average test loss and test accuracy
             test_loss = test_loss / len(test_loader.dataset)
@@ -194,7 +191,7 @@ def train_model(epochs):
             print(epoch, train_accuracy, train_loss, val_accuracy, val_loss, test_accuracy, test_loss)
 
             myWriter.writerow({'Epoch' : epoch+1, 'Train_accuracy' : train_accuracy/len(train_loader), \
-                     'Train_loss' : train_loss, 'Validation_accuracy' : val_accuracy/len(test_loader), \
+                     'Train_loss' : train_loss, 'Validation_accuracy' : val_accuracy/len(val_loader), \
                      'Validation_loss' : val_loss, 'Test_accuracy' : test_accuracy,'Test_loss' : test_loss})
 
             # with open('accuracy_epoch.csv', mode='a', newline='') as file:
@@ -204,7 +201,7 @@ def train_model(epochs):
             #         'Validation_loss' : val_loss, 'Test_accuracy' : test_accuracy,'Test_loss' : test_loss})
 
 
-train_model(10)
+train_model(30)
 
 
 
