@@ -108,4 +108,4 @@ with open(csv_path, 'r') as csv_file:
                                             dest_path = os.path.join(root_dir, dest_dir, "_1"+image_name)
                                         copyfile(src_path, dest_path)
 
-    splitfolders.ratio(root_dir, output=root_dir, seed=1337, ratio=(0.7, 0.1,0.2)) 
+    splitfolders.ratio(root_dir, output=root_dir, seed=12, ratio=(0.7, 0.1,0.2)) 
